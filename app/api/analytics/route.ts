@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { verifyToken } from "@/lib/auth";
 import { cookies } from "next/headers";
 
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
             return NextResponse.json({ error: "Missing eventType" }, { status: 400 });
         }
 
-        // Try to get user if logged in (optional for basic tracking)
+        // Try to get user if logged in
         const token = cookies().get("session")?.value;
         let userId = null;
         if (token) {
@@ -24,31 +24,24 @@ export async function POST(req: Request) {
         }
 
         if (eventType === "AFFILIATE_CLICK" && productId) {
-            // Record dedicated click
-            await prisma.affiliateClick.create({
-                data: {
-                    source,
-                    productId,
-                    userId,
-                }
+            await supabase.from('AffiliateClick').insert({
+                source,
+                productId,
+                userId,
             });
         }
 
-        // Record general event
-        await prisma.analyticsEvent.create({
-            data: {
-                eventType,
-                source,
-                productId,
-                url,
-                userId,
-            }
+        await supabase.from('AnalyticsEvent').insert({
+            eventType,
+            source,
+            productId,
+            url,
+            userId,
         });
 
         return NextResponse.json({ success: true }, { status: 200 });
     } catch (error) {
         console.error("Analytics Error:", error);
-        // Return 200 anyway so we don't break the client if tracking fails
         return NextResponse.json({ success: false }, { status: 200 });
     }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { verifyToken } from "@/lib/auth";
-import prisma from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 
 export async function GET() {
     try {
@@ -17,10 +17,15 @@ export async function GET() {
             return NextResponse.json({ user: null }, { status: 200 });
         }
 
-        const user = await prisma.user.findUnique({
-            where: { id: payload.userId },
-            select: { id: true, email: true, createdAt: true },
-        });
+        const { data: user } = await supabase
+            .from('User')
+            .select('id, email, createdAt')
+            .eq('id', payload.userId)
+            .single();
+
+        if (!user) {
+            return NextResponse.json({ user: null }, { status: 200 });
+        }
 
         return NextResponse.json({ user }, { status: 200 });
     } catch (error) {

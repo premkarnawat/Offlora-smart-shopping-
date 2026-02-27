@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import prisma from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { signToken } from "@/lib/auth";
 
 export async function POST(req: Request) {
@@ -12,37 +12,44 @@ export async function POST(req: Request) {
         }
 
         // Find valid OTP session
-        const session = await prisma.otpSession.findFirst({
-            where: {
-                email,
-                otp,
-                verified: false,
-                expiresAt: {
-                    gt: new Date(),
-                },
-            },
-            orderBy: { expiresAt: "desc" },
-        });
+        const { data: sessions, error: sessionError } = await supabase
+            .from('OtpSession')
+            .select('*')
+            .eq('email', email)
+            .eq('otp', otp)
+            .eq('verified', false)
+            .gt('expiresAt', new Date().toISOString())
+            .order('expiresAt', { ascending: false })
+            .limit(1);
 
-        if (!session) {
+        if (sessionError || !sessions || sessions.length === 0) {
             return NextResponse.json({ error: "Invalid or expired OTP" }, { status: 400 });
         }
 
+        const session = sessions[0];
+
         // Mark verified
-        await prisma.otpSession.update({
-            where: { id: session.id },
-            data: { verified: true },
-        });
+        await supabase
+            .from('OtpSession')
+            .update({ verified: true })
+            .eq('id', session.id);
 
         // Find or create user
-        let user = await prisma.user.findUnique({
-            where: { email },
-        });
+        let { data: user } = await supabase
+            .from('User')
+            .select('*')
+            .eq('email', email)
+            .single();
 
         if (!user) {
-            user = await prisma.user.create({
-                data: { email },
-            });
+            const { data: newUser, error: createError } = await supabase
+                .from('User')
+                .insert({ email })
+                .select()
+                .single();
+
+            if (createError) throw createError;
+            user = newUser;
         }
 
         // Generate JWT

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/db";
+import { supabase } from "@/lib/supabase";
 import { sendOtpEmail } from "@/lib/mail";
 
 export async function POST(req: Request) {
@@ -12,16 +12,22 @@ export async function POST(req: Request) {
 
         // Generate 6 digit OTP
         const otp = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
+        const expiresAt = new Date(Date.now() + 5 * 60 * 1000).toISOString();
 
         // Store in DB
-        await prisma.otpSession.create({
-            data: {
+        const { error: dbError } = await supabase
+            .from('OtpSession')
+            .insert({
                 email,
                 otp,
                 expiresAt,
-            },
-        });
+                verified: false
+            });
+
+        if (dbError) {
+            console.error("Supabase Error:", dbError);
+            throw new Error("Failed to save session");
+        }
 
         // Send email
         const emailRes = await sendOtpEmail(email, otp);
