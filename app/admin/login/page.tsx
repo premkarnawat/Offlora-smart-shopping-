@@ -10,16 +10,31 @@ export default function AdminLoginPage() {
     const [loading, setLoading] = useState(false);
     const router = useRouter();
 
+    const [error, setError] = useState("");
+
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        setError("");
 
-        // Mock login for now
-        setTimeout(() => {
+        try {
+            const res = await fetch("/api/admin/login", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ email, password }),
+            });
+
+            if (res.ok) {
+                router.push("/admin");
+            } else {
+                const data = await res.json();
+                setError(data.error || "Login failed");
+                setLoading(false);
+            }
+        } catch (err) {
+            setError("An error occurred. Please try again.");
             setLoading(false);
-            // In a real app, this would hit /api/admin/login and set an admin JWT cookie
-            router.push("/admin");
-        }, 1000);
+        }
     };
 
     return (
@@ -34,6 +49,11 @@ export default function AdminLoginPage() {
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-4 relative z-10">
+                    {error && (
+                        <div className="p-3 bg-red-50 border border-red-100 text-red-600 rounded-xl text-sm text-center">
+                            {error}
+                        </div>
+                    )}
                     <div className="relative">
                         <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
                             <Mail className="h-5 w-5 text-brand-text/40" />

@@ -77,7 +77,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, title = "Sign In" }: Aut
     return (
         <AnimatePresence>
             {isOpen && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 overflow-y-auto sm:p-6">
                     <motion.div
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
@@ -90,7 +90,7 @@ export function AuthModal({ isOpen, onClose, onSuccess, title = "Sign In" }: Aut
                         initial={{ scale: 0.95, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.95, opacity: 0, y: 20 }}
-                        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-8 overflow-hidden z-10"
+                        className="relative w-full max-w-md bg-white rounded-3xl shadow-2xl p-6 sm:p-8 overflow-y-auto max-h-[90vh] z-10 my-auto"
                     >
                         <button
                             onClick={onClose}
