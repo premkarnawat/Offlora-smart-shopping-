@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useAuth } from "./AuthProvider";
 import { User, LogOut, Menu, X, Search } from "lucide-react";
 import { useState } from "react";
+import { AuthModal } from "./AuthModal";
 
 export function Navbar() {
     const { user, loading, logout } = useAuth();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
     return (
         <nav className="sticky top-0 z-50 glass border-b border-brand-primary/10">
@@ -56,9 +58,9 @@ export function Navbar() {
                                 </button>
                             </div>
                         ) : (
-                            <Link href="/login" className="px-5 py-2 bg-brand-secondary text-white rounded-full font-medium hover:bg-brand-secondary/90 transition-colors shadow-sm">
+                            <button onClick={() => setIsAuthModalOpen(true)} className="px-5 py-2 bg-brand-secondary text-white rounded-full font-medium hover:bg-brand-secondary/90 transition-colors shadow-sm">
                                 Sign In
-                            </Link>
+                            </button>
                         )
                     )}
                 </div>
@@ -85,11 +87,17 @@ export function Navbar() {
                                 <button onClick={() => { logout(); setIsMobileMenuOpen(false); }} className="text-left text-lg font-medium text-red-500">Logout</button>
                             </>
                         ) : (
-                            <Link href="/login" className="text-lg font-medium text-brand-secondary" onClick={() => setIsMobileMenuOpen(false)}>Sign In</Link>
+                            <button onClick={() => { setIsAuthModalOpen(true); setIsMobileMenuOpen(false); }} className="text-left text-lg font-medium text-brand-secondary">Sign In</button>
                         )}
                     </div>
                 </div>
             )}
+
+            <AuthModal
+                isOpen={isAuthModalOpen}
+                onClose={() => setIsAuthModalOpen(false)}
+                onSuccess={() => setIsAuthModalOpen(false)}
+            />
         </nav>
     );
 }
