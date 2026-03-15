@@ -1,8 +1,10 @@
 import ProductCard from './ProductCard'
-import type { ProductWithRelations } from '@/lib/types'
 
+// Using `any[]` here because the product data comes from
+// withImageUrls() in data.ts which adds `url` at runtime.
+// TypeScript can't infer the intersection type from Prisma + our transform.
 interface Props {
-  products: ProductWithRelations[]
+  products: any[]
 }
 
 export default function RelatedProducts({ products }: Props) {

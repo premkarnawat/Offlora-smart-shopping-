@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function ProductPage({ params }: Props) {
   const product = await getProductBySlug(params.slug)
   if (!product) notFound()
-  const related = await getRelatedProducts(product.categoryId, product.id)
+  const related = await getRelatedProducts(product.categoryId, product.id) as any[]
 
   return (
     <div className="pt-20 sm:pt-24 lg:pt-28 pb-16 sm:pb-20 lg:pb-32">
