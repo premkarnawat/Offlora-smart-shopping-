@@ -1,16 +1,31 @@
-import type { Product, Brand, Category, ProductImage, Blog, AffiliateClick, LegalPage } from '@prisma/client'
+import type { Product, Brand, Category, Blog, LegalPage } from '@prisma/client'
+
+// ─── Image ────────────────────────────────────────────────────────────────────
+// We never send raw base64 `data` to the client.
+// All image references use a /api/images/[id] URL instead.
+
+export type ProductImageSlim = {
+  id: string
+  url: string          // always /api/images/<id>
+  alt: string | null
+  isPrimary: boolean
+}
+
+// ─── Product ──────────────────────────────────────────────────────────────────
 
 export type ProductWithRelations = Product & {
   brand: Brand
   category: Category
-  images: ProductImage[]
+  images: ProductImageSlim[]
 }
 
-export type BlogWithProducts = Blog & {
-  products: {
-    product: ProductWithRelations
-  }[]
+// ─── Blog ─────────────────────────────────────────────────────────────────────
+
+export type BlogWithCover = Omit<Blog, 'coverImageId'> & {
+  coverImage: string | null  // resolved /api/images/<id> or null
 }
+
+// ─── Analytics ────────────────────────────────────────────────────────────────
 
 export type AnalyticsData = {
   totalProducts: number
@@ -24,7 +39,17 @@ export type AnalyticsData = {
   }[]
 }
 
+// ─── Auth ─────────────────────────────────────────────────────────────────────
+
 export type AdminUser = {
   userId: string
   role: string
 }
+
+// ─── Legal ────────────────────────────────────────────────────────────────────
+
+export type LegalPageType =
+  | 'PRIVACY_POLICY'
+  | 'TERMS_AND_CONDITIONS'
+  | 'AFFILIATE_DISCLAIMER'
+  | 'PRIVACY_CENTER'
