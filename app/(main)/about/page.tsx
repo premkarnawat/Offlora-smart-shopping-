@@ -57,11 +57,11 @@ export default function AboutPage() {
         <div className="mt-20 border-t border-cream-300 pt-12">
           <p className="text-xs tracking-widest uppercase text-bark-400 font-sans mb-3">Get in Touch</p>
           <a
-            href="mailto:hello@offlora.in"
+            href="mailto:offlora.contact@gmail.com"
             className="font-serif text-3xl text-bark-900 hover:text-bark-600 transition-colors"
             style={{ fontFamily: 'Cormorant, serif', fontWeight: 300 }}
           >
-            hello@offlora.in
+            offlora.contact@gmail.com
           </a>
         </div>
       </div>

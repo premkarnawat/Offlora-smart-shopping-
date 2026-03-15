@@ -59,19 +59,11 @@ export default function ContactPage() {
               Have a product suggestion, partnership inquiry, or editorial question? We would love to hear from you. Your message lands directly in our inbox.
             </p>
 
-            <div className="space-y-5 sm:space-y-6">
-              {[
-                { label: 'General', value: 'hello@offlora.in', href: 'mailto:hello@offlora.in' },
-                { label: 'Editorial', value: 'editorial@offlora.in', href: 'mailto:editorial@offlora.in' },
-                { label: 'Partnerships', value: 'partners@offlora.in', href: 'mailto:partners@offlora.in' },
-              ].map(item => (
-                <div key={item.label}>
-                  <p className="text-xs tracking-widest uppercase text-bark-400 font-sans mb-1">{item.label}</p>
-                  <a href={item.href} className="text-sm text-bark-800 hover:text-bark-600 transition-colors font-sans min-h-0">
-                    {item.value}
-                  </a>
-                </div>
-              ))}
+            <div className="space-y-2">
+              <p className="text-xs tracking-widest uppercase text-bark-400 font-sans mb-1">Email</p>
+              <a href="mailto:offlora.contact@gmail.com" className="text-sm text-bark-800 hover:text-bark-600 transition-colors font-sans min-h-0">
+                offlora.contact@gmail.com
+              </a>
             </div>
 
             {/* Direct delivery notice */}
