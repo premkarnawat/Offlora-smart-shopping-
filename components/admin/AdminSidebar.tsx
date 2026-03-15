@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, BookOpen, BarChart2, FileText, Settings, LogOut, Menu, X } from 'lucide-react'
+import { LayoutDashboard, Package, BookOpen, BarChart2, FileText, Settings, LogOut, Menu, X, Tag, Grid } from 'lucide-react'
 import { adminLogout } from '@/lib/actions'
 
 const navItems = [
   { label:'Dashboard', href:'/admin/dashboard', icon:LayoutDashboard },
   { label:'Products', href:'/admin/products', icon:Package },
+  { label:'Brands', href:'/admin/brands', icon:Tag },
+  { label:'Categories', href:'/admin/categories', icon:Grid },
   { label:'Blogs', href:'/admin/blogs', icon:BookOpen },
   { label:'Analytics', href:'/admin/analytics', icon:BarChart2 },
   { label:'Legal Pages', href:'/admin/legal', icon:FileText },
