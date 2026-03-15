@@ -7,9 +7,11 @@ import { SignJWT, jwtVerify } from 'jose'
 import { cookies } from 'next/headers'
 import slugify from 'slugify'
 
-const JWT_SECRET = new TextEncoder().encode(process.env.JWT_SECRET || 'change-me-in-production')
+const JWT_SECRET = new TextEncoder().encode(
+  process.env.JWT_SECRET || 'change-me-in-production'
+)
 
-// ─── AFFILIATE CLICK TRACKING ────────────────────────────────────────────────
+// ─── AFFILIATE CLICK TRACKING ─────────────────────────────────────────────────
 
 export async function trackAffiliateClick(productId: string) {
   const headersList = headers()
@@ -17,9 +19,9 @@ export async function trackAffiliateClick(productId: string) {
     await prisma.affiliateClick.create({
       data: {
         productId,
-        ip: headersList.get('x-forwarded-for')?.split(',')[0] || null,
-        userAgent: headersList.get('user-agent') || null,
-        referer: headersList.get('referer') || null,
+        ip: headersList.get('x-forwarded-for')?.split(',')[0] ?? null,
+        userAgent: headersList.get('user-agent') ?? null,
+        referer: headersList.get('referer') ?? null,
       },
     })
   } catch {
@@ -27,9 +29,12 @@ export async function trackAffiliateClick(productId: string) {
   }
 }
 
-// ─── AUTH ────────────────────────────────────────────────────────────────────
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
 
-export async function adminLogin(email: string, password: string) {
+export async function adminLogin(
+  email: string,
+  password: string
+): Promise<{ success: boolean; error?: string }> {
   const user = await prisma.user.findUnique({ where: { email } })
   if (!user) return { success: false, error: 'Invalid credentials' }
 
@@ -56,7 +61,10 @@ export async function adminLogout() {
   cookies().delete('offlora-admin')
 }
 
-export async function verifyAdminSession() {
+export async function verifyAdminSession(): Promise<{
+  userId: string
+  role: string
+} | null> {
   const token = cookies().get('offlora-admin')?.value
   if (!token) return null
   try {
@@ -68,22 +76,31 @@ export async function verifyAdminSession() {
 }
 
 // ─── IMAGE HELPERS ────────────────────────────────────────────────────────────
-// Images are uploaded to UploadedImage table via /api/images/upload.
-// When creating/updating a product we copy the data into ProductImage rows.
-// In edit mode, images already in ProductImage keep their id and are retained as-is.
 
 type ImageInput = {
-  imageId: string       // either UploadedImage.id (new) or ProductImage.id (existing/retained)
+  imageId: string
   alt?: string
   isPrimary: boolean
-  isExisting?: boolean  // true when the image is already a ProductImage record
+  isExisting?: boolean
 }
 
-async function buildProductImageData(images: ImageInput[]) {
+type ProductImageCreateData = {
+  data: string
+  mimeType: string
+  filename: string | null
+  size: number | null
+  alt: string
+  isPrimary: boolean
+}
+
+async function buildProductImageData(images: ImageInput[]): Promise<{
+  createdData: ProductImageCreateData[]
+  retainedIds: string[]
+}> {
   const newImages = images.filter((i) => !i.isExisting)
   const existingImages = images.filter((i) => i.isExisting)
 
-  let createdData: any[] = []
+  let createdData: ProductImageCreateData[] = []
 
   if (newImages.length > 0) {
     const uploaded = await prisma.uploadedImage.findMany({
@@ -101,16 +118,19 @@ async function buildProductImageData(images: ImageInput[]) {
           mimeType: u.mimeType,
           filename: u.filename,
           size: u.size,
-          alt: img.alt || '',
+          alt: img.alt ?? '',
           isPrimary: img.isPrimary,
         }
       })
   }
 
-  return { createdData, retainedIds: existingImages.map((i) => i.imageId) }
+  return {
+    createdData,
+    retainedIds: existingImages.map((i) => i.imageId),
+  }
 }
 
-// ─── PRODUCT ACTIONS ─────────────────────────────────────────────────────────
+// ─── PRODUCT ACTIONS ──────────────────────────────────────────────────────────
 
 export async function createProduct(data: {
   title: string
@@ -134,18 +154,17 @@ export async function createProduct(data: {
 
   const { images, ...rest } = data
 
-  // Generate a unique slug
   let slug = slugify(data.title, { lower: true, strict: true })
   const existing = await prisma.product.findUnique({ where: { slug } })
   if (existing) slug = `${slug}-${Date.now()}`
 
-  const imageData = await buildProductImageData(images)
+  const { createdData } = await buildProductImageData(images)
 
   return prisma.product.create({
     data: {
       ...rest,
       slug,
-      images: { create: imageData },
+      images: { create: createdData as any },
     },
   })
 }
@@ -175,31 +194,34 @@ export async function updateProduct(
 
   const { images, ...rest } = data
 
-  let imageOps = {}
   if (images && images.length > 0) {
     const { createdData, retainedIds } = await buildProductImageData(images)
 
-    // Delete only images that are NOT being retained
-    imageOps = {
-      images: {
-        deleteMany: retainedIds.length > 0 ? { id: { notIn: retainedIds } } : {},
-        ...(createdData.length > 0 ? { create: createdData } : {}),
-      },
-    }
-
-    // Update alt/isPrimary on retained images
+    // Update alt/isPrimary on retained images first
     const retainedInputs = images.filter((i) => i.isExisting)
     for (const img of retainedInputs) {
       await prisma.productImage.update({
         where: { id: img.imageId },
-        data: { alt: img.alt || '', isPrimary: img.isPrimary },
+        data: { alt: img.alt ?? '', isPrimary: img.isPrimary },
       })
     }
+
+    return prisma.product.update({
+      where: { id },
+      data: {
+        ...rest,
+        images: {
+          deleteMany:
+            retainedIds.length > 0 ? { id: { notIn: retainedIds } } : {},
+          ...(createdData.length > 0 ? { create: createdData as any } : {}),
+        },
+      },
+    })
   }
 
   return prisma.product.update({
     where: { id },
-    data: { ...rest, ...imageOps },
+    data: rest,
   })
 }
 
@@ -209,14 +231,14 @@ export async function deleteProduct(id: string) {
   return prisma.product.delete({ where: { id } })
 }
 
-// ─── BLOG ACTIONS ────────────────────────────────────────────────────────────
+// ─── BLOG ACTIONS ─────────────────────────────────────────────────────────────
 
 export async function createBlog(data: {
   title: string
   content: string
   excerpt: string
   coverImageId?: string
-  coverImageUrl?: string   // ignored — only id matters
+  coverImageUrl?: string
   tags: string[]
   readTime: number
   author: string
@@ -231,6 +253,7 @@ export async function createBlog(data: {
   const existing = await prisma.blog.findUnique({ where: { slug } })
   if (existing) slug = `${slug}-${Date.now()}`
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { productIds, coverImageUrl, ...rest } = data
 
   return prisma.blog.create({
@@ -263,6 +286,7 @@ export async function updateBlog(
   const session = await verifyAdminSession()
   if (!session) throw new Error('Unauthorized')
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { productIds, coverImageUrl, ...rest } = data
 
   return prisma.blog.update({
@@ -289,18 +313,26 @@ export async function deleteBlog(id: string) {
 
 // ─── LEGAL PAGE ACTIONS ───────────────────────────────────────────────────────
 
-export async function updateLegalPage(type: string, title: string, content: string) {
+export async function updateLegalPage(
+  type: string,
+  title: string,
+  content: string
+) {
   const session = await verifyAdminSession()
   if (!session) throw new Error('Unauthorized')
 
   return prisma.legalPage.upsert({
-    where: { type: type as any },
+    where: { type: type as 'PRIVACY_POLICY' | 'TERMS_AND_CONDITIONS' | 'AFFILIATE_DISCLAIMER' | 'PRIVACY_CENTER' },
     update: { title, content },
-    create: { type: type as any, title, content },
+    create: {
+      type: type as 'PRIVACY_POLICY' | 'TERMS_AND_CONDITIONS' | 'AFFILIATE_DISCLAIMER' | 'PRIVACY_CENTER',
+      title,
+      content,
+    },
   })
 }
 
-// ─── CATEGORY & BRAND ACTIONS ────────────────────────────────────────────────
+// ─── CATEGORY & BRAND ACTIONS ─────────────────────────────────────────────────
 
 export async function createCategory(name: string, description?: string) {
   const session = await verifyAdminSession()
