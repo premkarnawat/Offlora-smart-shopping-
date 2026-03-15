@@ -1,0 +1,176 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=DM+Mono:wght@300;400&display=swap');
+
+/* ─── Brand Tokens ────────────────────────────────────────── */
+:root {
+  --font-cormorant: 'Cormorant', serif;
+  --font-dm-sans: 'DM Sans', sans-serif;
+  --font-dm-mono: 'DM Mono', monospace;
+  --color-cream: #FAF7F0;
+  --color-bark: #9A8B6F;
+  --color-obsidian: #0F0E0B;
+  --color-sage: #7D9E72;
+
+  /* Fluid spacing */
+  --section-px: clamp(1rem, 4vw, 1.5rem);
+  --section-py: clamp(3rem, 8vw, 6rem);
+}
+
+/* ─── Reset ───────────────────────────────────────────────── */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Prevent text size inflation on iOS rotation */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  background-color: var(--color-cream);
+  color: var(--color-obsidian);
+  font-family: var(--font-dm-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  /* Prevent horizontal overflow on mobile */
+  overflow-x: hidden;
+  width: 100%;
+}
+
+/* ─── Touch targets ───────────────────────────────────────── */
+/* All interactive elements must be at least 44×44px on mobile */
+button, a {
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+/* But don't force height on text links inside paragraphs */
+p a, li a {
+  min-height: unset;
+  display: inline;
+}
+
+/* ─── Images ──────────────────────────────────────────────── */
+img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+}
+
+/* ─── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: var(--color-cream); }
+::-webkit-scrollbar-thumb { background: #B5A48A; border-radius: 2px; }
+
+/* ─── Selection ───────────────────────────────────────────── */
+::selection { background: #C8B99A; color: #0F0E0B; }
+
+/* ─── Fluid containers ────────────────────────────────────── */
+@layer utilities {
+  /* Safe fluid padding — never touches screen edges */
+  .px-safe {
+    padding-left: max(1rem, env(safe-area-inset-left));
+    padding-right: max(1rem, env(safe-area-inset-right));
+  }
+
+  .text-balance { text-wrap: balance; }
+  .border-hairline { border-width: 0.5px; }
+}
+
+/* ─── Product card hover (disabled on touch devices) ─────── */
+@media (hover: hover) {
+  .product-card-hover {
+    transition: transform 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+                box-shadow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  }
+  .product-card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 20px 60px rgba(15, 14, 11, 0.08);
+  }
+}
+
+/* ─── Marquee ─────────────────────────────────────────────── */
+.marquee-container { overflow: hidden; white-space: nowrap; }
+.marquee-inner {
+  display: inline-block;
+  animation: marquee 30s linear infinite;
+  /* Respect prefers-reduced-motion */
+  @media (prefers-reduced-motion: reduce) { animation: none; }
+}
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+/* ─── Rich text (blog & product descriptions) ─────────────── */
+.prose-offlora h2 {
+  font-family: var(--font-cormorant);
+  font-size: clamp(1.5rem, 4vw, 1.875rem);
+  font-weight: 400;
+  margin-top: 2.5rem;
+  margin-bottom: 1rem;
+}
+.prose-offlora h3 {
+  font-family: var(--font-cormorant);
+  font-size: clamp(1.25rem, 3vw, 1.5rem);
+  font-weight: 400;
+  margin-top: 2rem;
+  margin-bottom: 0.75rem;
+}
+.prose-offlora p {
+  margin-bottom: 1.25rem;
+  line-height: 1.75;
+  color: #3D3628;
+  font-size: clamp(0.875rem, 2vw, 1rem);
+}
+.prose-offlora ul {
+  list-style: disc;
+  padding-left: 1.5rem;
+  margin-bottom: 1.25rem;
+}
+.prose-offlora li {
+  margin-bottom: 0.5rem;
+  color: #3D3628;
+  font-size: clamp(0.875rem, 2vw, 1rem);
+}
+.prose-offlora a {
+  color: #7D7057;
+  text-decoration: underline;
+  min-height: unset;
+  display: inline;
+}
+
+/* ─── Fluid section spacing ───────────────────────────────── */
+.section-pad {
+  padding: var(--section-py) var(--section-px);
+}
+
+/* ─── Admin layout ────────────────────────────────────────── */
+/* Sidebar collapses on mobile via JS — body scroll lock when open */
+.admin-sidebar-open {
+  overflow: hidden;
+}
+
+/* ─── Focus styles (accessibility) ───────────────────────── */
+:focus-visible {
+  outline: 2px solid #9A8B6F;
+  outline-offset: 2px;
+}
+
+/* ─── Input base (mobile font-size >= 16px prevents iOS zoom) */
+input, select, textarea {
+  font-size: 16px; /* prevents iOS auto-zoom on focus */
+}
+@media (min-width: 640px) {
+  input, select, textarea {
+    font-size: 0.875rem; /* 14px on desktop as designed */
+  }
+}

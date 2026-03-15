@@ -1,0 +1,158 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  ADMIN
+  SUPER_ADMIN
+}
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  slug        String    @unique
+  description String?
+  imageUrl    String?
+  icon        String?
+  products    Product[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Brand {
+  id        String    @id @default(cuid())
+  name      String    @unique
+  slug      String    @unique
+  logoUrl   String?
+  website   String?
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id              String           @id @default(cuid())
+  title           String
+  slug            String           @unique
+  description     String
+  shortDesc       String
+  pros            String[]
+  cons            String[]
+  rating          Float            @default(0)
+  reviewCount     Int              @default(0)
+  affiliateLink   String
+  affiliateClicks AffiliateClick[]
+  images          ProductImage[]
+  videoUrl        String?
+  isFeatured      Boolean          @default(false)
+  isTopRated      Boolean          @default(false)
+  isPublished     Boolean          @default(true)
+  brand           Brand            @relation(fields: [brandId], references: [id])
+  brandId         String
+  category        Category         @relation(fields: [categoryId], references: [id])
+  categoryId      String
+  blogProducts    BlogProduct[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([categoryId])
+  @@index([brandId])
+  @@index([slug])
+}
+
+model ProductImage {
+  id          String  @id @default(cuid())
+  // Stored as base64 data URI (e.g. "data:image/jpeg;base64,...")
+  data        String  @db.Text
+  mimeType    String  @default("image/jpeg")
+  filename    String?
+  size        Int?    // bytes
+  alt         String?
+  isPrimary   Boolean @default(false)
+  productId   String
+  product     Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt   DateTime @default(now())
+}
+
+// Standalone image store for blog covers, category images, etc.
+model UploadedImage {
+  id        String   @id @default(cuid())
+  data      String   @db.Text
+  mimeType  String   @default("image/jpeg")
+  filename  String?
+  size      Int?
+  alt       String?
+  createdAt DateTime @default(now())
+}
+
+model Blog {
+  id           String        @id @default(cuid())
+  title        String
+  slug         String        @unique
+  excerpt      String
+  content      String        @db.Text
+  coverImageId String?       // references UploadedImage.id
+  isPublished  Boolean       @default(true)
+  isFeatured   Boolean       @default(false)
+  tags         String[]
+  products     BlogProduct[]
+  readTime     Int           @default(5)
+  author       String        @default("Offlora Editorial")
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@index([slug])
+}
+
+model BlogProduct {
+  id        String  @id @default(cuid())
+  blog      Blog    @relation(fields: [blogId], references: [id], onDelete: Cascade)
+  blogId    String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+
+  @@unique([blogId, productId])
+}
+
+model AffiliateClick {
+  id        String   @id @default(cuid())
+  product   Product  @relation(fields: [productId], references: [id])
+  productId String
+  ip        String?
+  userAgent String?
+  referer   String?
+  createdAt DateTime @default(now())
+
+  @@index([productId])
+  @@index([createdAt])
+}
+
+model LegalPage {
+  id        String   @id @default(cuid())
+  type      LegalType @unique
+  title     String
+  content   String   @db.Text
+  updatedAt DateTime @updatedAt
+}
+
+enum LegalType {
+  PRIVACY_POLICY
+  TERMS_AND_CONDITIONS
+  AFFILIATE_DISCLAIMER
+  PRIVACY_CENTER
+}
