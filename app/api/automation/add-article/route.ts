@@ -1,5 +1,5 @@
 /**
- * POST /api/automation/add-product
+ * POST /api/automation/add-article
  */
 
 import { NextRequest, NextResponse } from "next/server"
@@ -29,63 +29,59 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
 
-    if (!body.title || !body.description || !body.shortDesc) {
+    if (!body.title || !body.content) {
       return NextResponse.json(
-        { error: "title, description, shortDesc required" },
+        { error: "title and content are required" },
         { status: 400 }
       )
     }
 
     const slug = body.slug || generateSlug(body.title)
 
-    // ✅ Check duplicate using ASIN (exists in your DB)
-    if (body.asin) {
-      const existing = await prisma.product.findFirst({
-        where: { asin: body.asin }
-      })
+    // ✅ ONLY blog duplicate check (NO asin, NO product)
+    const existing = await prisma.blog.findFirst({
+      where: { slug }
+    })
 
-      if (existing) {
-        return NextResponse.json({
-          product_id: existing.id,
-          duplicate: true
-        })
-      }
+    if (existing) {
+      return NextResponse.json({
+        article_id: existing.id,
+        slug: existing.slug,
+        duplicate: true
+      })
     }
 
-    // ✅ Create product
-    const product = await prisma.product.create({
+    // ✅ Create blog (aligned with your DB)
+    const article = await prisma.blog.create({
       data: {
         title: body.title,
         slug,
-        description: body.description,
-        shortDesc: body.shortDesc,
-        pros: Array.isArray(body.pros) ? body.pros : [],
-        cons: Array.isArray(body.cons) ? body.cons : [],
-        rating: Number(body.rating) || 0,
-        reviewCount: Number(body.reviewCount) || 0,
-        affiliateLink: body.affiliateLink,
-        videoUrl: body.videoUrl || null,
-        isFeatured: false,
-        brandId: body.brandId,
-        categoryId: body.categoryId,
-        asin: body.asin || null,
-        trend_score: Number(body.trend_score) || 0,
-        status: body.status || "pending",
-        source: body.source || "automation"
+        excerpt: body.excerpt || body.title,
+        content: body.content,
+        author: body.author || "Offlora Editorial",
+        readTime: Number(body.read_time) || 5,
+        tags: Array.isArray(body.tags) ? body.tags : [],
+        coverImageId: body.cover_image || null,
+        isPublished: false,
+        isFeatured: false
       }
     })
 
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || "https://offlora.in"
+
     return NextResponse.json({
-      product_id: product.id,
-      slug: product.slug
+      article_id: article.id,
+      slug: article.slug,
+      article_url: `${siteUrl}/blog/${article.slug}`
     })
 
   } catch (error: any) {
-    console.error("[Automation] add-product error:", error)
+    console.error("[Automation] add-article error:", error)
 
     return NextResponse.json(
       {
-        error: "Failed to create product",
+        error: "Failed to create article",
         detail: error.message
       },
       { status: 500 }
