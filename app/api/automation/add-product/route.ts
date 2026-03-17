@@ -1,11 +1,5 @@
 /**
  * POST /api/automation/add-product
- *
- * Called by the Python automation agent to push new products
- * into your Offlora database as "pending" (for your approval).
- *
- * Add this file to your existing Next.js project at:
- * app/api/automation/add-product/route.ts
  */
 
 import { NextRequest, NextResponse } from "next/server"
@@ -18,6 +12,15 @@ function authorized(req: NextRequest): boolean {
   return secret === process.env.AUTOMATION_SECRET
 }
 
+function generateSlug(title: string): string {
+  return title
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .replace(/-+/g, "-")
+    .slice(0, 80)
+}
+
 export async function POST(req: NextRequest) {
   if (!authorized(req)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -26,19 +29,21 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
 
-    // Validate required fields
-    if (!body.title || !body.affiliate_link) {
+    if (!body.title || !body.affiliate_link || !body.brandId || !body.categoryId) {
       return NextResponse.json(
-        { error: "title and affiliate_link are required" },
+        { error: "title, affiliate_link, brandId, categoryId are required" },
         { status: 400 }
       )
     }
 
-    // Check for duplicate ASIN
+    const slug = body.slug || generateSlug(body.title)
+
+    // Check duplicate by ASIN
     if (body.asin) {
       const existing = await prisma.product.findFirst({
         where: { asin: body.asin }
       })
+
       if (existing) {
         return NextResponse.json(
           { product_id: existing.id, duplicate: true },
@@ -47,31 +52,48 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Check duplicate by slug
+    const existingSlug = await prisma.product.findFirst({
+      where: { slug }
+    })
+
+    if (existingSlug) {
+      return NextResponse.json(
+        { product_id: existingSlug.id, duplicate: true },
+        { status: 200 }
+      )
+    }
+
     const product = await prisma.product.create({
       data: {
         title: body.title,
-        shortDescription: body.short_description || body.title.slice(0, 100),
-        price: body.price || "Check on Amazon",
-        rating: body.rating || 0,
-        reviewCount: body.review_count || 0,
+        slug,
+        description: body.description || body.title,
+        shortDesc: body.short_description || body.title.slice(0, 100),
+        pros: Array.isArray(body.pros) ? body.pros : [],
+        cons: Array.isArray(body.cons) ? body.cons : [],
+        rating: Number(body.rating) || 0,
+        reviewCount: Number(body.review_count) || 0,
         affiliateLink: body.affiliate_link,
-        imageUrls: body.image_urls || [],
-        pros: body.pros || [],
-        cons: body.cons || [],
-        category: body.category || "General",
+        videoUrl: body.video_url || null,
+        brandId: body.brandId,
+        categoryId: body.categoryId,
         asin: body.asin || null,
-        trendScore: body.trend_score || 0,
-        status: "pending",       // ← Shows in your approval queue
         isPublished: false,
         isFeatured: false,
         isTopRated: false,
+        source: "automation"
       }
     })
 
-    return NextResponse.json({ product_id: product.id, status: "pending" })
+    return NextResponse.json({
+      product_id: product.id,
+      status: "pending"
+    })
 
   } catch (error: any) {
     console.error("[Automation] add-product error:", error)
+
     return NextResponse.json(
       { error: "Failed to create product", detail: error.message },
       { status: 500 }
