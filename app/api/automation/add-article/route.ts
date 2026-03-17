@@ -1,13 +1,3 @@
-/**
- * POST /api/automation/add-article
- *
- * Called by the Python automation agent to push AI-written articles
- * into your Offlora database as drafts (for your review before publishing).
- *
- * Add this file to your existing Next.js project at:
- * app/api/automation/add-article/route.ts
- */
-
 import { NextRequest, NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
 
@@ -44,15 +34,17 @@ export async function POST(req: NextRequest) {
 
     const slug = body.slug || generateSlug(body.title)
 
-    // Check for duplicate slug
-    const existing = await prisma.article.findFirst({ where: { slug } })
+    // ✅ FIXED HERE
+    const existing = await prisma.blog.findFirst({ where: { slug } })
+
     if (existing) {
       return NextResponse.json(
         { article_id: existing.id, slug: existing.slug, duplicate: true }
       )
     }
 
-    const article = await prisma.article.create({
+    // ✅ FIXED HERE
+    const article = await prisma.blog.create({
       data: {
         title: body.title,
         slug,
@@ -62,7 +54,7 @@ export async function POST(req: NextRequest) {
         readTime: body.read_time || 7,
         tags: body.tags || [],
         coverImage: body.cover_image || null,
-        isPublished: false,   // ← Draft — you publish from dashboard
+        isPublished: false,
         isFeatured: false,
         featuredProductIds: body.featured_product_ids || [],
         seoKeyword: body.seo_keyword || null,
@@ -72,6 +64,7 @@ export async function POST(req: NextRequest) {
     })
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://offlora.in"
+
     return NextResponse.json({
       article_id: article.id,
       slug: article.slug,
