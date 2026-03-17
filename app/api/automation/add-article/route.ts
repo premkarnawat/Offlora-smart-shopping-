@@ -1,3 +1,7 @@
+/**
+ * POST /api/automation/add-article
+ */
+
 import { NextRequest, NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
 
@@ -34,16 +38,20 @@ export async function POST(req: NextRequest) {
 
     const slug = body.slug || generateSlug(body.title)
 
-    // ✅ FIXED HERE
-    const existing = await prisma.blog.findFirst({ where: { slug } })
+    // Check duplicate slug
+    const existing = await prisma.blog.findFirst({
+      where: { slug }
+    })
 
     if (existing) {
-      return NextResponse.json(
-        { article_id: existing.id, slug: existing.slug, duplicate: true }
-      )
+      return NextResponse.json({
+        article_id: existing.id,
+        slug: existing.slug,
+        duplicate: true
+      })
     }
 
-    // ✅ FIXED HERE
+    // Create blog
     const article = await prisma.blog.create({
       data: {
         title: body.title,
@@ -51,19 +59,16 @@ export async function POST(req: NextRequest) {
         excerpt: body.excerpt || body.title,
         content: body.content,
         author: body.author || "Offlora Editorial",
-        readTime: body.read_time || 7,
-        tags: body.tags || [],
-        coverImage: body.cover_image || null,
+        readTime: Number(body.read_time) || 5,
+        tags: Array.isArray(body.tags) ? body.tags : [],
+        coverImageId: body.cover_image || null,
         isPublished: false,
-        isFeatured: false,
-        featuredProductIds: body.featured_product_ids || [],
-        seoKeyword: body.seo_keyword || null,
-        metaDescription: body.excerpt?.slice(0, 155) || null,
-        source: "automation",
+        isFeatured: false
       }
     })
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "https://offlora.in"
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL || "https://offlora.in"
 
     return NextResponse.json({
       article_id: article.id,
@@ -73,8 +78,12 @@ export async function POST(req: NextRequest) {
 
   } catch (error: any) {
     console.error("[Automation] add-article error:", error)
+
     return NextResponse.json(
-      { error: "Failed to create article", detail: error.message },
+      {
+        error: "Failed to create article",
+        detail: error.message
+      },
       { status: 500 }
     )
   }
