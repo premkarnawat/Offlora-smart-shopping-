@@ -1,3 +1,4 @@
+```prisma
 generator client {
   provider = "prisma-client-js"
 }
@@ -51,6 +52,10 @@ model Product {
   slug            String           @unique
   description     String
   shortDesc       String
+
+  // ✅ ASIN added (IMPORTANT)
+  asin            String?          @unique
+
   pros            String[]
   cons            String[]
   rating          Float            @default(0)
@@ -62,11 +67,14 @@ model Product {
   isFeatured      Boolean          @default(false)
   isTopRated      Boolean          @default(false)
   isPublished     Boolean          @default(true)
+
   brand           Brand            @relation(fields: [brandId], references: [id])
   brandId         String
   category        Category         @relation(fields: [categoryId], references: [id])
   categoryId      String
+
   blogProducts    BlogProduct[]
+
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
 
@@ -77,11 +85,10 @@ model Product {
 
 model ProductImage {
   id          String  @id @default(cuid())
-  // Stored as base64 data URI (e.g. "data:image/jpeg;base64,...")
   data        String  @db.Text
   mimeType    String  @default("image/jpeg")
   filename    String?
-  size        Int?    // bytes
+  size        Int?
   alt         String?
   isPrimary   Boolean @default(false)
   productId   String
@@ -89,7 +96,6 @@ model ProductImage {
   createdAt   DateTime @default(now())
 }
 
-// Standalone image store for blog covers, category images, etc.
 model UploadedImage {
   id        String   @id @default(cuid())
   data      String   @db.Text
@@ -106,7 +112,7 @@ model Blog {
   slug         String        @unique
   excerpt      String
   content      String        @db.Text
-  coverImageId String?       // references UploadedImage.id
+  coverImageId String?
   isPublished  Boolean       @default(true)
   isFeatured   Boolean       @default(false)
   tags         String[]
@@ -143,11 +149,11 @@ model AffiliateClick {
 }
 
 model LegalPage {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   type      LegalType @unique
   title     String
-  content   String   @db.Text
-  updatedAt DateTime @updatedAt
+  content   String    @db.Text
+  updatedAt DateTime  @updatedAt
 }
 
 enum LegalType {
@@ -156,3 +162,4 @@ enum LegalType {
   AFFILIATE_DISCLAIMER
   PRIVACY_CENTER
 }
+```
