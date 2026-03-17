@@ -81,8 +81,7 @@ export async function POST(req: NextRequest) {
         asin: body.asin || null,
         isPublished: false,
         isFeatured: false,
-        isTopRated: false,
-        source: "automation"
+        isTopRated: false
       }
     })
 
