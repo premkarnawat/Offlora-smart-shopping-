@@ -1,7 +1,3 @@
-/**
- * POST /api/automation/add-product
- */
-
 import { NextRequest, NextResponse } from "next/server"
 import { PrismaClient } from "@prisma/client"
 
@@ -13,12 +9,7 @@ function authorized(req: NextRequest): boolean {
 }
 
 function generateSlug(title: string): string {
-  return title
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, "")
-    .replace(/\s+/g, "-")
-    .replace(/-+/g, "-")
-    .slice(0, 80)
+  return title.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-")
 }
 
 export async function POST(req: NextRequest) {
@@ -31,37 +22,21 @@ export async function POST(req: NextRequest) {
 
     if (!body.title || !body.affiliate_link || !body.brandId || !body.categoryId) {
       return NextResponse.json(
-        { error: "title, affiliate_link, brandId, categoryId are required" },
+        { error: "title, affiliate_link, brandId, categoryId required" },
         { status: 400 }
       )
     }
 
     const slug = body.slug || generateSlug(body.title)
 
-    // Check duplicate by ASIN
+    // ASIN duplicate check
     if (body.asin) {
       const existing = await prisma.product.findFirst({
         where: { asin: body.asin }
       })
-
       if (existing) {
-        return NextResponse.json(
-          { product_id: existing.id, duplicate: true },
-          { status: 200 }
-        )
+        return NextResponse.json({ product_id: existing.id, duplicate: true })
       }
-    }
-
-    // Check duplicate by slug
-    const existingSlug = await prisma.product.findFirst({
-      where: { slug }
-    })
-
-    if (existingSlug) {
-      return NextResponse.json(
-        { product_id: existingSlug.id, duplicate: true },
-        { status: 200 }
-      )
     }
 
     const product = await prisma.product.create({
@@ -85,17 +60,9 @@ export async function POST(req: NextRequest) {
       }
     })
 
-    return NextResponse.json({
-      product_id: product.id,
-      status: "pending"
-    })
+    return NextResponse.json({ product_id: product.id })
 
-  } catch (error: any) {
-    console.error("[Automation] add-product error:", error)
-
-    return NextResponse.json(
-      { error: "Failed to create product", detail: error.message },
-      { status: 500 }
-    )
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 500 })
   }
 }
