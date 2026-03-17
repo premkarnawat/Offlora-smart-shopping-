@@ -1,11 +1,5 @@
 /**
  * GET /api/automation/get-pending
- *
- * Returns count of pending products and draft articles.
- * Used by your dashboard to show approval badges.
- *
- * Add this file to your existing Next.js project at:
- * app/api/automation/get-pending/route.ts
  */
 
 import { NextRequest, NextResponse } from "next/server"
@@ -19,14 +13,20 @@ function authorized(req: NextRequest): boolean {
 }
 
 export async function GET(req: NextRequest) {
-  // Allow both automation service and your own dashboard (authenticated session)
   const isAutomation = authorized(req)
-  // Add your own session check here if needed
+  // (optional) you can add session check here
 
   try {
     const [pendingProducts, draftArticles] = await Promise.all([
-      prisma.product.count({ where: { status: "pending" } }),
-      prisma.article.count({ where: { isPublished: false, source: "automation" } }),
+      // ✅ Use isPublished instead of status
+      prisma.product.count({
+        where: { isPublished: false }
+      }),
+
+      // ✅ Use blog instead of article + remove source
+      prisma.blog.count({
+        where: { isPublished: false }
+      })
     ])
 
     return NextResponse.json({
@@ -34,7 +34,11 @@ export async function GET(req: NextRequest) {
       draft_articles: draftArticles,
       total_action_needed: pendingProducts + draftArticles,
     })
+
   } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json(
+      { error: error.message },
+      { status: 500 }
+    )
   }
 }
